@@ -50,10 +50,14 @@ st.markdown(
       div[data-testid="stDataFrame"] { border:1px solid rgba(255,255,255,.1); border-radius:16px; overflow:hidden; }
       [data-testid="stSidebar"] { background:#111219; }
       .small-note { color:rgba(255,255,255,.38); font-size:.75rem; line-height:1.5; }
+      .mobile-brand { display:none; }
+      .mobile-brand img { display:block; height:36px; width:auto; }
       @media (max-width:700px) {
         .block-container { padding-left:1rem; padding-right:1rem; }
         .simple-title { font-size:2rem; }
         .card-title { font-size:.88rem; }
+        .mobile-brand { display:flex; align-items:center; min-height:52px; margin-bottom:.75rem; }
+        [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display:none !important; }
       }
     </style>
     """,
@@ -151,10 +155,11 @@ def render_genre_views(frame: pd.DataFrame, prefix: str, featured_ids: list[str]
     for tab, genre in zip(tabs, GENRE_TABS):
         with tab:
             items = genre_filter(frame, genre)
-            if genre == "전체" and featured_ids:
+            if featured_ids:
                 featured = items[items["id"].isin(featured_ids)]
-                section_heading("주목할 만한 신작", len(featured))
-                render_cards(featured)
+                if not featured.empty:
+                    section_heading("주목할 만한 신작", len(featured))
+                    render_cards(featured)
             title = "전체 신작" if prefix == "전체" and genre == "전체" else f"{prefix} {genre} 신작"
             section_heading(title, len(items))
             render_cards(items)
@@ -192,6 +197,13 @@ def render_popular_content(month: str) -> None:
 
 data = load_data()
 months = sorted(data["month"].unique(), reverse=True)
+
+logo = image_data_uri("assets/btv-plus-logo.png")
+if logo:
+    st.markdown(
+        f'<div class="mobile-brand"><img src="{logo}" alt="B tv+"></div>',
+        unsafe_allow_html=True,
+    )
 
 with st.sidebar:
     st.image(str(ROOT / "assets" / "btv-plus-logo.png"), width=150)
