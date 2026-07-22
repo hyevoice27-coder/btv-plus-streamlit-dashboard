@@ -1,11 +1,11 @@
 id,month,release_date,title,type,product,genres,synopsis,poster,Netflix,TVING,Wavve,Disney+,왓챠,Laftel
-jul-01,2026-07,7월 4일,결혼의 완성,series,btv-plus-max,드라마|미스터리,아내가 납치되고 남편이 용의자로 몰리며 시작되는 미스터리 드라마.,assets/posters/marriage.jpg,X,X,X,O,X,X
-jul-02,2026-07,7월 6일,가족관계증명서,series,btv-plus-max,드라마|멜로|미스터리,가혹한 운명과 편견에 맞서 잃어버린 삶을 되찾으려는 여성의 이야기.,assets/posters/family-certificate.jpg,X,O,O,X,X,X
+jul-01,2026-07,7월 4일,결혼의 완성,series,btv-plus-max,드라마|미스터리,아내가 납치되고 남편이 용의자로 몰리며 시작되는 미스터리 드라마.,assets/popular/popular-03.jpg,X,X,X,O,X,X
+jul-02,2026-07,7월 6일,가족관계증명서,series,btv-plus-max,드라마|멜로|미스터리,가혹한 운명과 편견에 맞서 잃어버린 삶을 되찾으려는 여성의 이야기.,assets/popular/popular-01.jpg,X,O,O,X,X,X
 jul-03,2026-07,7월 8일,왕은 무얼 자셨는가,variety,both,예능|음식|역사,왕실 음식과 역사 속 식문화를 고증해 살펴보는 TV조선 예능.,assets/posters/king-food.jpg,X,X,O,X,O,X
 jul-04,2026-07,7월 9일,야구여왕 시즌2,variety,both,예능|스포츠,블랙퀸즈가 더 큰 무대에 도전하는 스포츠 버라이어티.,assets/posters/baseball-queen-2.jpg,X,X,X,O,X,X
 jul-05,2026-07,7월 10일,두 검사,movie,both,영화|드라마,스탈린 시대의 부조리한 권력 앞에서 진실을 좇는 젊은 검사의 이야기.,assets/posters/two-prosecutors.jpg,X,X,X,X,X,X
 jul-06,2026-07,7월 10일,미야자키 하야오의 그대들은 어떻게 살 것인가,movie,both,영화|다큐멘터리,미야자키 하야오의 창작 과정과 긴 제작 여정을 기록한 다큐멘터리.,,X,X,X,X,X,X
-jul-07,2026-07,7월 11일,아파트,series,both,드라마|공포,아파트를 배경으로 일어나는 미스터리한 사건을 그린 드라마.,assets/posters/apartment.jpg,O,X,X,X,X,X
+jul-07,2026-07,7월 11일,아파트,series,both,드라마|공포,아파트를 배경으로 일어나는 미스터리한 사건을 그린 드라마.,assets/popular/popular-02.jpg,O,X,X,X,X,X
 jul-08,2026-07,7월 22일,왕과 사는 남자,movie,both,영화|사극|드라마,왕위에서 쫓겨난 어린 왕과 그를 지키게 된 광대의 이야기.,assets/posters/king-man.jpg,X,X,X,X,X,X
 jul-09,2026-07,7월 23일,짱구,movie,both,영화|드라마,배우를 꿈꾸며 서울에 온 청년 짱구의 성장 이야기.,assets/posters/jjanggu.jpg,X,X,X,X,X,X
 jul-10,2026-07,7월 24일,쉘터,movie,both,영화|범죄|스릴러|액션,은퇴한 특수 요원이 뜻밖의 사건에 휘말리며 다시 전장으로 향한다.,assets/posters/shelter.jpg,X,X,X,X,X,X
