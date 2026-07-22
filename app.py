@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import base64
+import html
 from pathlib import Path
 
 import pandas as pd
@@ -7,44 +11,50 @@ import streamlit as st
 ROOT = Path(__file__).parent
 DATA_FILE = ROOT / "data" / "contents.csv"
 PROVIDERS = ["Netflix", "TVING", "Wavve", "Disney+", "왓챠", "Laftel"]
-TYPE_LABELS = {
-    "movie": "영화",
-    "series": "드라마",
-    "animation": "애니",
-    "variety": "예능",
-    "documentary": "다큐",
-}
+TYPE_LABELS = {"movie": "영화", "series": "드라마", "animation": "애니/키즈", "variety": "예능", "documentary": "다큐"}
+GENRE_TABS = ["전체", "영화", "드라마", "예능", "애니/키즈"]
 
-st.set_page_config(
-    page_title="B tv+ 월별 신작",
-    page_icon="🎬",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="B tv+ 월별 신작", page_icon="🎬", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown(
     """
     <style>
-      .stApp { background: radial-gradient(circle at 85% 0%, #321c37 0, transparent 30rem), #090a0f; color: #f7f7fa; }
-      [data-testid="stHeader"] { background: rgba(9,10,15,.72); backdrop-filter: blur(16px); }
-      .block-container { max-width: 1480px; padding-top: 2rem; padding-bottom: 5rem; }
-      .eyebrow { color:#ff5b95; font-size:.78rem; font-weight:800; letter-spacing:.12em; }
-      .hero-title { font-size:clamp(2.3rem,6vw,4.9rem); line-height:1.02; letter-spacing:-.055em; margin:.65rem 0 1rem; font-weight:900; }
-      .hero-title span { color:rgba(255,255,255,.52); }
-      .hero-copy { color:rgba(255,255,255,.55); line-height:1.7; margin-bottom:1.8rem; }
-      .content-card { border:1px solid rgba(255,255,255,.1); background:#15161d; border-radius:18px; padding:1rem; min-height:178px; }
-      .content-card h3 { margin:.55rem 0 .35rem; font-size:1.1rem; line-height:1.35; }
-      .content-card p { color:rgba(255,255,255,.55); font-size:.8rem; line-height:1.55; margin:.2rem 0; }
-      .pill { display:inline-block; border-radius:999px; padding:.28rem .6rem; background:#ff2d78; font-size:.68rem; font-weight:800; }
-      .ott-o { color:#fff; background:#ff2d78; border-radius:999px; display:inline-grid; place-items:center; width:30px; height:30px; font-weight:900; }
-      .ott-x { color:rgba(255,255,255,.38); background:rgba(255,255,255,.07); border-radius:999px; display:inline-grid; place-items:center; width:30px; height:30px; font-weight:900; }
+      .stApp { background:#08090e; color:#f7f7fa; }
+      [data-testid="stHeader"] { background:rgba(8,9,14,.8); backdrop-filter:blur(16px); }
+      .block-container { max-width:1500px; padding-top:2rem; padding-bottom:5rem; }
+      .simple-title { font-size:clamp(2rem,4.6vw,4.1rem); line-height:1.08; letter-spacing:-.05em; margin:1.1rem 0 2rem; font-weight:900; }
+      .section-heading { display:flex; align-items:baseline; gap:.55rem; margin:1.2rem 0 .9rem; }
+      .section-heading h2 { font-size:1.45rem; margin:0; letter-spacing:-.03em; }
+      .section-heading span { color:#777986; font-size:.9rem; }
+      .content-card { border:1px solid #2c2e38; background:#15161d; border-radius:13px; overflow:hidden; margin-bottom:1.2rem; box-shadow:0 10px 26px rgba(0,0,0,.18); }
+      .poster-wrap { position:relative; aspect-ratio:2/3; overflow:hidden; background:#273d35; }
+      .poster-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+      .poster-fallback { height:100%; display:grid; place-items:center; padding:1.2rem; text-align:center; font-size:1.15rem; font-weight:900; }
+      .product-badge { position:absolute; left:.58rem; top:.58rem; z-index:2; border-radius:5px; padding:.36rem .56rem; font-size:.63rem; line-height:1; font-weight:900; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+      .product-badge.max { background:#ff2d78; color:#fff; }
+      .product-badge.both { background:#fff; color:#090a0f; }
+      .card-body { padding:.82rem .82rem .9rem; }
+      .card-title { font-size:.98rem; font-weight:900; line-height:1.3; margin:0 0 .42rem; word-break:keep-all; }
+      .card-meta { color:#a6a7b4; font-size:.72rem; line-height:1.55; margin:.08rem 0; }
+      .card-cast { color:#d0d1d8; font-size:.7rem; line-height:1.5; margin:.3rem 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .ott-area { border-top:1px solid #2a2b34; margin-top:.72rem; padding-top:.65rem; }
+      .ott-label { color:#8b8d99; font-size:.65rem; font-weight:700; margin-bottom:.42rem; }
+      .ott-badges { display:flex; flex-wrap:wrap; gap:.28rem; }
+      .ott-badge { border-radius:4px; padding:.28rem .42rem; font-size:.6rem; line-height:1; font-weight:900; }
+      .ott-badge.yes { color:#70f3c5; background:#073b34; }
+      .ott-badge.unknown { color:#ffd85b; background:#3a310b; }
+      .ott-empty { color:#60626d; font-size:.62rem; }
       div[data-testid="stTabs"] button { font-weight:800; }
       div[role="radiogroup"] { gap:.5rem; flex-wrap:wrap; }
       div[role="radiogroup"] label { border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:.35rem .85rem; min-height:2.5rem; }
       div[data-testid="stDataFrame"] { border:1px solid rgba(255,255,255,.1); border-radius:16px; overflow:hidden; }
       [data-testid="stSidebar"] { background:#111219; }
       .small-note { color:rgba(255,255,255,.38); font-size:.75rem; line-height:1.5; }
-      @media (max-width:640px) { .block-container { padding-left:1rem; padding-right:1rem; } }
+      @media (max-width:700px) {
+        .block-container { padding-left:1rem; padding-right:1rem; }
+        .simple-title { font-size:2rem; }
+        .card-title { font-size:.88rem; }
+      }
     </style>
     """,
     unsafe_allow_html=True,
@@ -54,6 +64,8 @@ st.markdown(
 @st.cache_data
 def load_data() -> pd.DataFrame:
     frame = pd.read_csv(DATA_FILE, dtype=str).fillna("")
+    if "cast" not in frame.columns:
+        frame["cast"] = ""
     for provider in PROVIDERS:
         if provider not in frame.columns:
             frame[provider] = "X"
@@ -61,8 +73,15 @@ def load_data() -> pd.DataFrame:
     return frame
 
 
-def product_name(value: str) -> str:
-    return "B tv+ max 전용" if value == "btv-plus-max" else "B tv+ · max 동시 편성"
+@st.cache_data
+def image_data_uri(relative_path: str) -> str:
+    if not relative_path:
+        return ""
+    path = ROOT / relative_path
+    if not path.exists():
+        return ""
+    mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
 
 
 def product_filter(frame: pd.DataFrame, product: str) -> pd.DataFrame:
@@ -73,59 +92,94 @@ def product_filter(frame: pd.DataFrame, product: str) -> pd.DataFrame:
     return frame
 
 
+def genre_filter(frame: pd.DataFrame, genre: str) -> pd.DataFrame:
+    target = {"영화": "movie", "드라마": "series", "예능": "variety", "애니/키즈": "animation"}.get(genre)
+    return frame if target is None else frame[frame["type"] == target]
+
+
+def card_html(item: pd.Series) -> str:
+    badge_class = "max" if item["product"] == "btv-plus-max" else "both"
+    product_label = "B tv+ max 전용" if badge_class == "max" else "B tv+ · max 동시 편성"
+    poster = image_data_uri(item["poster"])
+    poster_html = f'<img src="{poster}" alt="{html.escape(item["title"])} 포스터">' if poster else f'<div class="poster-fallback">{html.escape(item["title"])}</div>'
+    cast = html.escape(item.get("cast", "").replace("|", " · ")) or "출연진 확인 필요"
+    ott_badges = []
+    for provider in PROVIDERS:
+        value = item.get(provider, "X")
+        if value == "O":
+            ott_badges.append(f'<span class="ott-badge yes">{provider} ✓</span>')
+        elif value == "?":
+            ott_badges.append(f'<span class="ott-badge unknown">{provider} ?</span>')
+    badges = "".join(ott_badges) or '<span class="ott-empty">별도 OTT 월정액 편성 없음</span>'
+    return f"""
+      <article class="content-card">
+        <div class="poster-wrap">
+          <span class="product-badge {badge_class}">{product_label}</span>
+          {poster_html}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{html.escape(item['title'])}</h3>
+          <p class="card-meta">{html.escape(item['release_date'])} 편성 · {TYPE_LABELS.get(item['type'], item['type'])}</p>
+          <p class="card-meta">{html.escape(item['genres'].replace('|', ' · '))}</p>
+          <p class="card-cast">{cast}</p>
+          <div class="ott-area">
+            <div class="ott-label">다른 OTT 월정액 편성</div>
+            <div class="ott-badges">{badges}</div>
+          </div>
+        </div>
+      </article>
+    """
+
+
 def render_cards(frame: pd.DataFrame) -> None:
     if frame.empty:
         st.info("조건에 맞는 신작이 없습니다.")
         return
-
-    for start in range(0, len(frame), 4):
-        columns = st.columns(4)
-        for column, (_, item) in zip(columns, frame.iloc[start : start + 4].iterrows()):
+    for start in range(0, len(frame), 5):
+        columns = st.columns(5)
+        for column, (_, item) in zip(columns, frame.iloc[start : start + 5].iterrows()):
             with column:
-                poster = ROOT / item["poster"] if item["poster"] else None
-                if poster and poster.exists():
-                    st.image(str(poster), width="stretch")
-                st.markdown(
-                    f"""
-                    <div class="content-card">
-                      <span class="pill">{product_name(item['product'])}</span>
-                      <h3>{item['title']}</h3>
-                      <p><b>{item['release_date']} 공개</b> · {TYPE_LABELS.get(item['type'], item['type'])}</p>
-                      <p>{item['genres'].replace('|', ' · ')}</p>
-                      <p>{item['synopsis']}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.markdown(card_html(item), unsafe_allow_html=True)
+
+
+def section_heading(title: str, count: int) -> None:
+    st.markdown(f'<div class="section-heading"><h2>{title}</h2><span>{count}</span></div>', unsafe_allow_html=True)
+
+
+def render_genre_views(frame: pd.DataFrame, prefix: str, featured_ids: list[str] | None = None) -> None:
+    tabs = st.tabs(GENRE_TABS)
+    for tab, genre in zip(tabs, GENRE_TABS):
+        with tab:
+            items = genre_filter(frame, genre)
+            if genre == "전체" and featured_ids:
+                featured = items[items["id"].isin(featured_ids)]
+                section_heading("주목할 만한 신작", len(featured))
+                render_cards(featured)
+            title = "전체 신작" if prefix == "전체" and genre == "전체" else f"{prefix} {genre} 신작"
+            section_heading(title, len(items))
+            render_cards(items)
 
 
 def render_ott_table(frame: pd.DataFrame) -> None:
-    table = frame[["title", "release_date", *PROVIDERS]].rename(
-        columns={"title": "콘텐츠", "release_date": "공개일"}
-    )
+    table = frame[["title", "release_date", *PROVIDERS]].rename(columns={"title": "콘텐츠", "release_date": "편성일"})
 
     def decorate(value: str) -> str:
         if value == "O":
-            return "background-color:#ff2d78;color:white;font-weight:800;text-align:center"
+            return "background-color:#087f67;color:#c6ffeb;font-weight:800;text-align:center"
+        if value == "?":
+            return "background-color:#6b5600;color:#ffe991;font-weight:800;text-align:center"
         if value == "X":
             return "background-color:#20212a;color:#777985;font-weight:800;text-align:center"
         return ""
 
-    styled = table.style.map(decorate, subset=PROVIDERS)
-    st.markdown("### OTT 편성현황")
-    st.caption("O: 월정액 제공 · X: 미제공 또는 제공 여부 확인 필요")
-    st.dataframe(styled, hide_index=True, width="stretch", height=min(760, 45 + 36 * len(table)))
+    st.markdown("## OTT 편성현황")
+    st.caption("O: 월정액 제공 · ?: 확인 필요 · X: 미편성")
+    st.dataframe(table.style.map(decorate, subset=PROVIDERS), hide_index=True, width="stretch", height=min(760, 45 + 36 * len(table)))
 
 
 def render_popular_content(month: str) -> None:
     known_titles = {1: "가족관계증명서", 2: "아파트", 3: "결혼의 완성"}
-    st.markdown('<div class="eyebrow">B tv+ max HOT NOW</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="hero-title">{month[:4]}년 {int(month[5:])}월<br><span>인기 콘텐츠 TOP 30</span></div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="hero-copy">B tv+ max에서 지금 가장 인기 있는 콘텐츠를 순위별로 확인하세요.</div>', unsafe_allow_html=True)
-
+    st.markdown(f'<div class="simple-title">B tv+ max {month[:4]}년 {int(month[5:])}월 인기 콘텐츠 TOP 30</div>', unsafe_allow_html=True)
     for start in range(1, 31, 6):
         columns = st.columns(6)
         for column, rank in zip(columns, range(start, min(start + 6, 31))):
@@ -134,6 +188,7 @@ def render_popular_content(month: str) -> None:
                 if poster.exists():
                     st.image(str(poster), width="stretch")
                 st.markdown(f"**{rank}위** — {known_titles.get(rank, f'B tv+ max 인기 {rank}위')}")
+
 
 data = load_data()
 months = sorted(data["month"].unique(), reverse=True)
@@ -148,13 +203,7 @@ with st.sidebar:
     st.download_button("현재 CSV 내려받기", DATA_FILE.read_bytes(), file_name="contents.csv", mime="text/csv")
     st.markdown('<p class="small-note">영구 반영은 GitHub의 data/contents.csv 파일을 교체하면 됩니다.</p>', unsafe_allow_html=True)
 
-section = st.radio(
-    "메뉴",
-    ["월별 신작", "월별 인기 콘텐츠"],
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
+section = st.radio("메뉴", ["월별 신작", "월별 인기 콘텐츠"], horizontal=True, label_visibility="collapsed")
 selected_month = st.selectbox(
     "월 선택",
     months,
@@ -167,50 +216,21 @@ month_data = data[data["month"] == selected_month].copy()
 if section == "월별 인기 콘텐츠":
     render_popular_content(selected_month)
 else:
-    st.markdown('<div class="eyebrow">B tv+ MONTHLY PREMIERE</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="hero-title">{selected_month[:4]}년 {int(selected_month[5:])}월<br><span>새로운 이야기를 만나보세요</span></div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="hero-copy">B tv+와 B tv+ max 신작, 주요 OTT의 월정액 제공 여부를 한곳에서 비교하세요.</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="simple-title">B tv+ &amp; B tv+ max {selected_month[:4]}년 {int(selected_month[5:])}월 신작</div>', unsafe_allow_html=True)
+    product_tabs = st.tabs(["전체", "B tv+ max", "B tv+", "OTT 편성현황"])
+    featured_ids = {
+        "2026-07": ["jul-01", "jul-07", "jul-08"],
+        "2026-08": ["aug-01", "aug-02", "aug-03"],
+    }.get(selected_month, [])
 
-    tab_all, tab_max, tab_plus, tab_ott = st.tabs(["전체", "B tv+ max", "B tv+", "OTT 편성현황"])
-
-    with tab_all:
-        query = st.text_input("작품명 검색", placeholder="작품명을 입력하세요", key="all_query")
-        filtered = product_filter(month_data, "전체")
-        if query:
-            filtered = filtered[filtered["title"].str.contains(query, case=False, na=False)]
-        featured_ids = {
-            "2026-07": ["jul-01", "jul-07", "jul-08"],
-            "2026-08": ["aug-01", "aug-02", "aug-03"],
-        }
-        featured = filtered[filtered["id"].isin(featured_ids.get(selected_month, []))]
-        if featured.empty:
-            featured = filtered.head(3)
-        st.markdown("## 주목할 만한 신작")
-        render_cards(featured)
-        st.markdown("## 전체 신작")
-        st.caption(f"총 {len(filtered)}편 · 월정액 기준")
-        render_cards(filtered)
-
-    with tab_max:
-        max_items = product_filter(month_data, "B tv+ max")
-        st.markdown("## B tv+ max 신작")
-        st.caption(f"총 {len(max_items)}편")
-        render_cards(max_items)
-
-    with tab_plus:
-        plus_items = product_filter(month_data, "B tv+")
-        st.markdown("## B tv+ 신작")
-        st.caption(f"총 {len(plus_items)}편")
-        render_cards(plus_items)
-
-    with tab_ott:
+    with product_tabs[0]:
+        render_genre_views(product_filter(month_data, "전체"), "전체", featured_ids)
+    with product_tabs[1]:
+        render_genre_views(product_filter(month_data, "B tv+ max"), "B tv+ max")
+    with product_tabs[2]:
+        render_genre_views(product_filter(month_data, "B tv+"), "B tv+")
+    with product_tabs[3]:
         render_ott_table(month_data)
+
 st.divider()
 st.caption("OTT 제공 정보는 확인 시점에 따라 달라질 수 있습니다. 최종 확인일: 2026.07.15")
-
