@@ -97,8 +97,25 @@ def product_filter(frame: pd.DataFrame, product: str) -> pd.DataFrame:
 
 
 def genre_filter(frame: pd.DataFrame, genre: str) -> pd.DataFrame:
-    target = {"영화": "movie", "드라마": "series", "예능": "variety", "애니/키즈": "animation"}.get(genre)
-    return frame if target is None else frame[frame["type"] == target]
+    if genre == "전체":
+        return frame
+
+    target_types = {
+        "영화": {"movie"},
+        "드라마": {"series"},
+        "예능": {"variety"},
+        "애니/키즈": {"animation"},
+    }[genre]
+    genre_keywords = {
+        "영화": r"영화",
+        "드라마": r"드라마",
+        "예능": r"예능|버라이어티",
+        "애니/키즈": r"애니|키즈|아동",
+    }[genre]
+
+    type_matches = frame["type"].str.lower().isin(target_types)
+    genre_matches = frame["genres"].str.contains(genre_keywords, case=False, na=False, regex=True)
+    return frame[type_matches | genre_matches]
 
 
 def card_html(item: pd.Series) -> str:
@@ -238,9 +255,9 @@ else:
     with product_tabs[0]:
         render_genre_views(product_filter(month_data, "전체"), "전체", featured_ids)
     with product_tabs[1]:
-        render_genre_views(product_filter(month_data, "B tv+ max"), "B tv+ max")
+        render_genre_views(product_filter(month_data, "B tv+ max"), "B tv+ max", featured_ids)
     with product_tabs[2]:
-        render_genre_views(product_filter(month_data, "B tv+"), "B tv+")
+        render_genre_views(product_filter(month_data, "B tv+"), "B tv+", featured_ids)
     with product_tabs[3]:
         render_ott_table(month_data)
 
