@@ -39,6 +39,8 @@ st.markdown(
       .ott-o { color:#fff; background:#ff2d78; border-radius:999px; display:inline-grid; place-items:center; width:30px; height:30px; font-weight:900; }
       .ott-x { color:rgba(255,255,255,.38); background:rgba(255,255,255,.07); border-radius:999px; display:inline-grid; place-items:center; width:30px; height:30px; font-weight:900; }
       div[data-testid="stTabs"] button { font-weight:800; }
+      div[role="radiogroup"] { gap:.5rem; flex-wrap:wrap; }
+      div[role="radiogroup"] label { border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:.35rem .85rem; min-height:2.5rem; }
       div[data-testid="stDataFrame"] { border:1px solid rgba(255,255,255,.1); border-radius:16px; overflow:hidden; }
       [data-testid="stSidebar"] { background:#111219; }
       .small-note { color:rgba(255,255,255,.38); font-size:.75rem; line-height:1.5; }
@@ -146,16 +148,17 @@ with st.sidebar:
     st.download_button("현재 CSV 내려받기", DATA_FILE.read_bytes(), file_name="contents.csv", mime="text/csv")
     st.markdown('<p class="small-note">영구 반영은 GitHub의 data/contents.csv 파일을 교체하면 됩니다.</p>', unsafe_allow_html=True)
 
-section = st.segmented_control(
+section = st.radio(
     "메뉴",
     ["월별 신작", "월별 인기 콘텐츠"],
-    default="월별 신작",
+    horizontal=True,
     label_visibility="collapsed",
 )
 
 selected_month = st.selectbox(
     "월 선택",
     months,
+    index=months.index("2026-07") if "2026-07" in months else 0,
     format_func=lambda value: f"{value[:4]}년 {int(value[5:])}월",
     label_visibility="collapsed",
 )
