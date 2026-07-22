@@ -82,7 +82,7 @@ def render_cards(frame: pd.DataFrame) -> None:
             with column:
                 poster = ROOT / item["poster"] if item["poster"] else None
                 if poster and poster.exists():
-                    st.image(str(poster), use_container_width=True)
+                    st.image(str(poster), width="stretch")
                 st.markdown(
                     f"""
                     <div class="content-card">
@@ -112,8 +112,26 @@ def render_ott_table(frame: pd.DataFrame) -> None:
     styled = table.style.map(decorate, subset=PROVIDERS)
     st.markdown("### OTT 편성현황")
     st.caption("O: 월정액 제공 · X: 미제공 또는 제공 여부 확인 필요")
-    st.dataframe(styled, hide_index=True, use_container_width=True, height=min(760, 45 + 36 * len(table)))
+    st.dataframe(styled, hide_index=True, width="stretch", height=min(760, 45 + 36 * len(table)))
 
+
+def render_popular_content(month: str) -> None:
+    known_titles = {1: "가족관계증명서", 2: "아파트", 3: "결혼의 완성"}
+    st.markdown('<div class="eyebrow">B tv+ max HOT NOW</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="hero-title">{month[:4]}년 {int(month[5:])}월<br><span>인기 콘텐츠 TOP 30</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="hero-copy">B tv+ max에서 지금 가장 인기 있는 콘텐츠를 순위별로 확인하세요.</div>', unsafe_allow_html=True)
+
+    for start in range(1, 31, 6):
+        columns = st.columns(6)
+        for column, rank in zip(columns, range(start, min(start + 6, 31))):
+            with column:
+                poster = ROOT / "assets" / "popular" / f"popular-{rank:02d}.jpg"
+                if poster.exists():
+                    st.image(str(poster), width="stretch")
+                st.markdown(f"**{rank}위** — {known_titles.get(rank, f'B tv+ max 인기 {rank}위')}")
 
 data = load_data()
 months = sorted(data["month"].unique(), reverse=True)
@@ -128,6 +146,13 @@ with st.sidebar:
     st.download_button("현재 CSV 내려받기", DATA_FILE.read_bytes(), file_name="contents.csv", mime="text/csv")
     st.markdown('<p class="small-note">영구 반영은 GitHub의 data/contents.csv 파일을 교체하면 됩니다.</p>', unsafe_allow_html=True)
 
+section = st.segmented_control(
+    "메뉴",
+    ["월별 신작", "월별 인기 콘텐츠"],
+    default="월별 신작",
+    label_visibility="collapsed",
+)
+
 selected_month = st.selectbox(
     "월 선택",
     months,
@@ -136,33 +161,53 @@ selected_month = st.selectbox(
 )
 month_data = data[data["month"] == selected_month].copy()
 
-st.markdown('<div class="eyebrow">B tv+ MONTHLY PREMIERE</div>', unsafe_allow_html=True)
-st.markdown(
-    f'<div class="hero-title">{selected_month[:4]}년 {int(selected_month[5:])}월<br><span>새로운 이야기를 만나보세요</span></div>',
-    unsafe_allow_html=True,
-)
-st.markdown(
-    '<div class="hero-copy">B tv+와 B tv+ max 신작, 주요 OTT의 월정액 제공 여부를 한곳에서 비교하세요.</div>',
-    unsafe_allow_html=True,
-)
+if section == "월별 인기 콘텐츠":
+    render_popular_content(selected_month)
+else:
+    st.markdown('<div class="eyebrow">B tv+ MONTHLY PREMIERE</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="hero-title">{selected_month[:4]}년 {int(selected_month[5:])}월<br><span>새로운 이야기를 만나보세요</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="hero-copy">B tv+와 B tv+ max 신작, 주요 OTT의 월정액 제공 여부를 한곳에서 비교하세요.</div>',
+        unsafe_allow_html=True,
+    )
 
-tab_all, tab_max, tab_plus, tab_ott = st.tabs(["전체", "B tv+ max", "B tv+", "OTT 편성현황"])
+    tab_all, tab_max, tab_plus, tab_ott = st.tabs(["전체", "B tv+ max", "B tv+", "OTT 편성현황"])
 
-with tab_all:
-    query = st.text_input("작품명 검색", placeholder="작품명을 입력하세요", key="all_query")
-    filtered = product_filter(month_data, "전체")
-    if query:
-        filtered = filtered[filtered["title"].str.contains(query, case=False, na=False)]
-    render_cards(filtered)
+    with tab_all:
+        query = st.text_input("작품명 검색", placeholder="작품명을 입력하세요", key="all_query")
+        filtered = product_filter(month_data, "전체")
+        if query:
+            filtered = filtered[filtered["title"].str.contains(query, case=False, na=False)]
+        featured_ids = {
+            "2026-07": ["jul-01", "jul-07", "jul-08"],
+            "2026-08": ["aug-01", "aug-02", "aug-03"],
+        }
+        featured = filtered[filtered["id"].isin(featured_ids.get(selected_month, []))]
+        if featured.empty:
+            featured = filtered.head(3)
+        st.markdown("## 주목할 만한 신작")
+        render_cards(featured)
+        st.markdown("## 전체 신작")
+        st.caption(f"총 {len(filtered)}편 · 월정액 기준")
+        render_cards(filtered)
 
-with tab_max:
-    render_cards(product_filter(month_data, "B tv+ max"))
+    with tab_max:
+        max_items = product_filter(month_data, "B tv+ max")
+        st.markdown("## B tv+ max 신작")
+        st.caption(f"총 {len(max_items)}편")
+        render_cards(max_items)
 
-with tab_plus:
-    render_cards(product_filter(month_data, "B tv+"))
+    with tab_plus:
+        plus_items = product_filter(month_data, "B tv+")
+        st.markdown("## B tv+ 신작")
+        st.caption(f"총 {len(plus_items)}편")
+        render_cards(plus_items)
 
-with tab_ott:
-    render_ott_table(month_data)
-
+    with tab_ott:
+        render_ott_table(month_data)
 st.divider()
 st.caption("OTT 제공 정보는 확인 시점에 따라 달라질 수 있습니다. 최종 확인일: 2026.07.15")
+
